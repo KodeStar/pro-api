@@ -160,23 +160,23 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 			<table>
 				<tr>
 					<td>Uptime</td>
-					<td>32 days</td>
+					<td><?php echo $uptime;?></td>
 				</tr>
 				<tr>
 					<td>Load</td>
-					<td>0.4, 0.5, 0.6</td>
+					<td><?php echo $load;?></td>
 				</tr>
 				<tr>
 					<td>Memory</td>
-					<td>300MB Free</td>
+					<td><?php echo $memory;?></td>
 				</tr>
 				<tr>
 					<td>Connected</td>
-					<td>8 Clients</td>
+					<td><?php echo $clients;?> Client<?php echo ($clients === 1) ? '' : 's';?></td>
 				</tr>
 				<tr>
 					<td>Database size</td>
-					<td>200MB</td>
+					<td><?php echo $database; ?></td>
 				</tr>
 			</table>
 		</div><div class="stats">
@@ -200,16 +200,16 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 	<section>
 	<div class="col4">
 		<h3>Movies</h3>
-		<p>12344</p>
+		<p><?php echo $movies;?></p>
 	</div><div class="col4">
 		<h3>TV</h3>
-		<p>12344</p>
+		<p><?php echo $tv;?></p>
 	</div><div class="col4">
 		<h3>Music</h3>
-		<p>12344</p>
+		<p><?php echo $music;?></p>
 	</div><div class="col4">
 		<h3>Labels</h3>
-		<p>12344</p>
+		<p><?php echo $labels;?></p>
 	</div>
 	</section>
 

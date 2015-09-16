@@ -167,7 +167,7 @@ class CI_Cache_redis extends CI_Driver
 
 		if ($value !== FALSE && isset($this->_serialized[$key]))
 		{
-			die($value);
+			//die($value);
 			return unserialize(base64_decode($value));
 		}
 
@@ -225,7 +225,7 @@ class CI_Cache_redis extends CI_Driver
 			}
 
 			isset($this->_serialized[$id]) OR $this->_serialized[$id] = TRUE;
-			$data = serialize($data);
+			$data = base64_encode(serialize($data));
 		}
 		elseif (isset($this->_serialized[$id]))
 		{

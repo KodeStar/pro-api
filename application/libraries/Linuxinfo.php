@@ -34,7 +34,7 @@ class Linuxinfo
     {
         $memory = $this->parsefile($this->ldir."/meminfo");
 
-        return array("MemTotal" => intval($memory["MemTotal"])*1024, "MemFree" => intval($memory["MemFree"])*1024, "Buffers" => intval($memory["Buffers"])*1024, "Cached" => intval($memory["Cached"])*1024);
+        return (object)array("MemTotal" => intval($memory["MemTotal"])*1024, "MemFree" => intval($memory["MemFree"])*1024, "Buffers" => intval($memory["Buffers"])*1024, "Cached" => intval($memory["Cached"])*1024);
     }
 
     public function getUptime()
@@ -49,6 +49,14 @@ class Linuxinfo
         $uptime = $uptime[0].', '.$uptime[1];
 
         return array("load" => $avgs[1].", ".$avgs[2].", ".$avgs[3], "uptime" => $uptime);
+    }
+    public function getLoad()
+    {
+        //GET SERVER LOADS
+        $loadresult = @exec('uptime');
+        preg_match("/averages?: ([0-9\.]+),[\s]+([0-9\.]+),[\s]+([0-9\.]+)/",$loadresult,$avgs);
+
+        return $avgs[1].", ".$avgs[2].", ".$avgs[3];
     }
 
     public function getServiceStatus($checkservices)

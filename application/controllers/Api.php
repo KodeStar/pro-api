@@ -22,6 +22,8 @@
 			//ini_set("display_errors", 1);
 			$this->api_key = $this->rest->set_key();
 
+			//echo "key: ".$this->api_key;
+
 			$this->register_server();
 
 
@@ -69,7 +71,19 @@
 		}
 
 		private function show_stats() {
-			$this->load->view('stats');
+			$info = $this->cache->cache_info();
+			$this->load->library('linuxinfo');
+			$data['uptime'] = time_to_ago( $info['uptime_in_seconds'], true, false );
+			$data['load'] = $this->linuxinfo->getLoad();
+			$data['clients'] = $info['connected_clients'];
+			$data['memory'] = formatram( $this->linuxinfo->getMemStat()->MemFree );
+			$data['database'] = $info['used_memory_human'];
+			$data['movies'] = $this->cache->cache_count( 'movies' );
+			$data['tv'] = $this->cache->cache_count( 'tv' );
+			$data['music'] = $this->cache->cache_count( 'music' );
+			$data['labels'] = $this->cache->cache_count( 'labels' );
+
+			$this->load->view('stats', $data);
 		}
 		
 		private function movies($subpoints)
@@ -236,7 +250,7 @@
 		private function getArtistById($movieid, $albums=false) {
 			
 			$id = preg_replace("/[^a-z0-9-]/", "", $movieid);
-			$this->ttype = 'music';
+			$this->ttype = 'labels';
 			$this->tid = $id;
 			if( ( $link = $this->cache->hget( $this->ttype.'-links', $id ) ) !== false ) {
 				if( ( $data = $this->cache->hget( $this->ttype, $link ) ) !== false ) {
@@ -253,6 +267,7 @@
 		
 
 		private function api_lookup( $section, $lookupkey, $id ) {
+			$section = ( $section == 'labels' ) ? 'music/labels' : $section;
 			$data = json_decode( file_get_contents( 'http://webservice.fanart.tv/v3/'.$section.'/'.$id.'?api_key='.$this->api_key ) );
 				if( !empty( $data->status ) && $data->status == 'error' ) {
 				$this->rest->response( $this->json( array( "status" => "error", "error message" => "Not found" ) ), 404 ); break;
