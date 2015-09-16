@@ -6,6 +6,8 @@
 		public $ttype = '';
 		public $tid = '';
 
+		public $api_key = false;
+
 		public $project = '';
 		public $project_url = '';
 
@@ -18,9 +20,10 @@
 			$this->load->driver('cache', array('adapter' => 'redis', 'backup' => 'file'));
 			//error_reporting(E_ALL);
 			//ini_set("display_errors", 1);
-			
+			$this->api_key = $this->rest->set_key();
 
 			$this->register_server();
+
 
 			if( isset( $_SERVER['HTTP_CLIENT_KEY'] ) && !empty( $_SERVER['HTTP_CLIENT_KEY'] ) ) $_GET["client_key"] = $_SERVER['HTTP_CLIENT_KEY'];
 		}
@@ -75,13 +78,13 @@
 			{
 				switch($subpoints[0]) {
 					case "latest":
-						switch($this->get_request_method()) {
+						switch($this->rest->get_request_method()) {
 							case "GET": $this->getLatestMovies(); break;
 							default: $this->rest->response($this->json(array("status" => "error", "error message" => "Invalid Method")),405); break;
 						}
 						break;
 					default: // check if its the movie id
-						switch($this->get_request_method()) {
+						switch($this->rest->get_request_method()) {
 							case "GET": $this->getMovieById($subpoints[0]); break;
 							default: $this->rest->response($this->json(array("status" => "error", "error message" => "Invalid method")),405); break;
 						}
@@ -89,8 +92,8 @@
 						break;
 				}
 			} else {
-				switch($this->get_request_method()) {
-					case "GET": $this->rest->response($this->json(array("status" => "ok", "total movies" => "0")),200); break;
+				switch($this->rest->get_request_method()) {
+					case "GET": $movietotal = $this->cache->cache_count( 'movies' ); $this->rest->response($this->json(array("status" => "ok", "total movies" => $movietotal)),200); break;
 					default: $this->rest->response($this->json(array("status" => "error", "error message" => "Invalid method")),405); break;
 				}
 				
@@ -103,13 +106,13 @@
 			{
 				switch($subpoints[0]) {
 					case "latest":
-						switch($this->get_request_method()) {
+						switch($this->rest->get_request_method()) {
 							case "GET": $this->getLatestSeries(); break;
 							default: $this->rest->response($this->json(array("status" => "error", "error message" => "Invalid method")),405); break;
 						}
 						break;
 					default: // check if its the movie id
-						switch($this->get_request_method()) {
+						switch($this->rest->get_request_method()) {
 							case "GET": $this->getSeriesById($subpoints[0]); break;
 							default: $this->rest->response($this->json(array("status" => "error", "error message" => "Invalid method")),405); break;
 						}
@@ -117,7 +120,7 @@
 						break;
 				}
 			} else {
-				switch($this->get_request_method()) {
+				switch($this->rest->get_request_method()) {
 					case "GET": $this->rest->response($this->json(array("status" => "ok", "total movies" => "0")),200); break;
 					default: $this->rest->response($this->json(array("status" => "error", "error message" => "Invalid method")),405); break;
 				}
@@ -131,25 +134,25 @@
 			{
 				switch($subpoints[0]) {
 					case "latest":
-						switch($this->get_request_method()) {
+						switch($this->rest->get_request_method()) {
 							case "GET": $this->getLatestArtists(); break;
 							default: $this->rest->response($this->json(array("status" => "error", "error message" => "Invalid method")),405); break;
 						}
 						break;
 					case "albums":
-						switch($this->get_request_method()) {
+						switch($this->rest->get_request_method()) {
 							case "GET": $this->getArtistById($subpoints[1], true); break;
 							default: $this->rest->response($this->json(array("status" => "error", "error message" => "Invalid method")),405); break;
 						}
 						break;
 					case "labels":
-						switch($this->get_request_method()) {
+						switch($this->rest->get_request_method()) {
 							case "GET": $this->getLabelById($subpoints[1], true); break;
 							default: $this->rest->response($this->json(array("status" => "error", "error message" => "Invalid method")),405); break;
 						}
 						break;
 					default: // check if its the movie id
-						switch($this->get_request_method()) {
+						switch($this->rest->get_request_method()) {
 							case "GET": $this->getArtistById($subpoints[0]); break;
 							default: $this->rest->response($this->json(array("status" => "error", "error message" => "Invalid method")),405); break;
 						}
@@ -157,7 +160,7 @@
 						break;
 				}
 			} else {
-				switch($this->get_request_method()) {
+				switch($this->rest->get_request_method()) {
 					case "GET": $this->rest->response($this->json(array("status" => "ok", "total movies" => "0")),200); break;
 					default: $this->rest->response($this->json(array("status" => "error", "error message" => "Invalid method")),405); break;
 				}
@@ -178,16 +181,37 @@
 		private function getMovieById($movieid) {
 			
 			$id = preg_replace("/[^a-z0-9-]/", "", $movieid);
-			$this->ttype = 'movie';
+			$this->ttype = 'movies';
 			$this->tid = $id;
+			//die("here now");
+			if( ( $link = $this->cache->hget( $this->ttype.'-links', $id ) ) !== false ) {
+				if( ( $data = $this->cache->hget( $this->ttype, $link ) ) !== false ) {
+					$this->rest->response( $this->json( $data ), 200, $this->ttype, $this->tid ); break;
+				} else {
+					$this->api_lookup( $this->ttype, 'tmdb_id', $id );
 
+				}
+			} else {
+				$this->api_lookup( $this->ttype, 'tmdb_id', $id );
+			}
 		}
+
 			
 		private function getSeriesById($movieid) {
 			
 			$id = preg_replace("/[^a-z0-9-]/", "", $movieid);
 			$this->ttype = 'tv';
 			$this->tid = $id;
+			if( ( $link = $this->cache->hget( $this->ttype.'-links', $id ) ) !== false ) {
+				if( ( $data = $this->cache->hget( $this->ttype, $link ) ) !== false ) {
+					$this->rest->response( $this->json( $data ), 200, $this->ttype, $this->tid ); break;
+				} else {
+					$this->api_lookup( $this->ttype, 'thetvdb_id', $id );
+
+				}
+			} else {
+				$this->api_lookup( $this->ttype, 'thetvdb_id', $id );
+			}
 		}
 		
 		private function getLabelById($movieid) {
@@ -195,6 +219,16 @@
 			$id = preg_replace("/[^a-z0-9-]/", "", $movieid);
 			$this->ttype = 'music';
 			$this->tid = $id;
+			if( ( $link = $this->cache->hget( $this->ttype.'-links', $id ) ) !== false ) {
+				if( ( $data = $this->cache->hget( $this->ttype, $link ) ) !== false ) {
+					$this->rest->response( $this->json( $data ), 200, $this->ttype, $this->tid ); break;
+				} else {
+					$this->api_lookup( $this->ttype, 'mbid_id', $id );
+
+				}
+			} else {
+				$this->api_lookup( $this->ttype, 'mbid_id', $id );
+			}
 
 		}
 		
@@ -204,9 +238,32 @@
 			$id = preg_replace("/[^a-z0-9-]/", "", $movieid);
 			$this->ttype = 'music';
 			$this->tid = $id;
+			if( ( $link = $this->cache->hget( $this->ttype.'-links', $id ) ) !== false ) {
+				if( ( $data = $this->cache->hget( $this->ttype, $link ) ) !== false ) {
+					$this->rest->response( $this->json( $data ), 200, $this->ttype, $this->tid ); break;
+				} else {
+					$this->api_lookup( $this->ttype, 'id', $id );
+
+				}
+			} else {
+				$this->api_lookup( $this->ttype, 'id', $id );
+			}
 
 		}
 		
+
+		private function api_lookup( $section, $lookupkey, $id ) {
+			$data = json_decode( file_get_contents( 'http://webservice.fanart.tv/v3/'.$section.'/'.$id.'?api_key='.$this->api_key ) );
+				if( !empty( $data->status ) && $data->status == 'error' ) {
+				$this->rest->response( $this->json( array( "status" => "error", "error message" => "Not found" ) ), 404 ); break;
+			} else {
+				//die( $id.' --- '.$data->$lookupkey );
+				$this->cache->hsave( $section.'-links', $id, $data->$lookupkey );
+				$this->cache->hsave( $section, $data->$lookupkey, $data );
+				$this->rest->response( $this->json( $data ), 200, $this->ttype, $this->tid ); break;
+			}
+		}
+
 		
 		
 	    private function paths($url) {
@@ -218,7 +275,7 @@
 		//Encode array into JSON
 		private function json($data)
 		{
-			if(is_array($data)){
+			if(is_array($data) || is_object($data)){
 				return json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
 			}
 		}

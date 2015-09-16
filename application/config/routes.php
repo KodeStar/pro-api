@@ -50,6 +50,11 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 |		my-controller/my-method	-> my_controller/my_method
 */
 $route['default_controller'] = 'api';
+$route['movies'] = 'api/index';
 $route['movies/:any'] = 'api/index';
+$route['tv'] = 'api/index';
+$route['tv/:any'] = 'api/index';
+$route['music'] = 'api/index';
+$route['music/:any'] = 'api/index';
 $route['404_override'] = '';
 $route['translate_uri_dashes'] = FALSE;

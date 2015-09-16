@@ -21,14 +21,18 @@
 
 		}	
 
-		private function set_key() {
-			return '';
+		public function set_key() {
+			$environment = json_decode( @file_get_contents( '/etc/container_environment.json' ) );
+			if( isset( $environment->APIKEY ) ) 
+				return $environment->APIKEY;
 		}	
 		
 		public function response($data,$status, $type='error', $id=false, $format="json")
 		{
+
 			$this->_code = ($status)?$status:200;
 			if( $id == false && $type == 'error' ) $id = $status;
+
 			$this->set_headers($format);
 			//$this->track();
 			echo $data;

@@ -82,6 +82,26 @@ class CI_Cache_file extends CI_Driver {
 		return is_array($data) ? $data['data'] : FALSE;
 	}
 
+	/**
+	 * Fetch from cache
+	 *
+	 * @param	string	$id	Cache ID
+	 * @return	mixed	Data on success, FALSE on failure
+	 */
+	public function hget($id, $key)
+	{
+		$data = $this->_get($id);
+		if( !isset( $data[$key] ) ) return false;
+		$data = $data[$key];
+		return (isset($data) && !empty($data)) ? $data : FALSE;
+	}
+
+	public function hgetall($id)
+	{
+		$data = $this->_get($id);
+		return (isset($data) && !empty($data)) ? $data : FALSE;
+	}
+
 	// ------------------------------------------------------------------------
 
 	/**
@@ -109,6 +129,29 @@ class CI_Cache_file extends CI_Driver {
 
 		return FALSE;
 	}
+	/**
+	 * Save into cache
+	 *
+	 * @param	string	$id	Cache ID
+	 * @param	mixed	$data	Data to store
+	 * @param	int	$ttl	Time to live in seconds
+	 * @param	bool	$raw	Whether to store the raw value (unused)
+	 * @return	bool	TRUE on success, FALSE on failure
+	 */
+	public function hsave($id, $key, $data, $ttl = 0, $raw = FALSE)
+	{
+		$contents = $this->hgetall( $id );
+		$contents[$key]	= $data;
+		//if( is_array( $current )) $contents = array_merge( $current, $contents );
+
+		if (write_file($this->_cache_path.$id, serialize($contents)))
+		{
+			chmod($this->_cache_path.$id, 0640);
+			return TRUE;
+		}
+
+		return FALSE;
+	}
 
 	// ------------------------------------------------------------------------
 
@@ -122,6 +165,21 @@ class CI_Cache_file extends CI_Driver {
 	{
 		return file_exists($this->_cache_path.$id) ? unlink($this->_cache_path.$id) : FALSE;
 	}
+
+	// ------------------------------------------------------------------------
+
+	/**
+	 * Count cache items
+	 *
+	 * @param	string	Cache key
+	 * @return	bool
+	 */
+	public function cache_count($key)
+	{
+		$value = $this->hgetall($key);
+		return count($value);
+	}
+
 
 	// ------------------------------------------------------------------------
 
@@ -271,10 +329,9 @@ class CI_Cache_file extends CI_Driver {
 		{
 			return FALSE;
 		}
-
 		$data = unserialize(file_get_contents($this->_cache_path.$id));
 
-		if ($data['ttl'] > 0 && time() > $data['time'] + $data['ttl'])
+		if (isset($data['ttl']) && $data['ttl'] > 0 && time() > $data['time'] + $data['ttl'])
 		{
 			unlink($this->_cache_path.$id);
 			return FALSE;

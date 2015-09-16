@@ -148,7 +148,27 @@ class CI_Cache_redis extends CI_Driver
 
 		if ($value !== FALSE && isset($this->_serialized[$key]))
 		{
-			return unserialize($value);
+			return unserialize(base64_decode($value));
+		}
+
+		return $value;
+	}
+	// ------------------------------------------------------------------------
+
+	/**
+	 * hGet cache
+	 *
+	 * @param	string	Cache ID
+	 * @return	mixed
+	 */
+	public function hget($key, $hashkey)
+	{
+		$value = $this->_redis->hGet($key, $hashkey);
+
+		if ($value !== FALSE && isset($this->_serialized[$key]))
+		{
+			die($value);
+			return unserialize(base64_decode($value));
 		}
 
 		return $value;
@@ -186,6 +206,36 @@ class CI_Cache_redis extends CI_Driver
 		return $this->_redis->set($id, $data, $ttl);
 	}
 
+	/**
+	 * hSave cache
+	 *
+	 * @param	string	$id	Cache ID
+	 * @param	mixed	$data	Data to save
+	 * @param	int	$ttl	Time to live in seconds
+	 * @param	bool	$raw	Whether to store the raw value (unused)
+	 * @return	bool	TRUE on success, FALSE on failure
+	 */
+	public function hsave($id, $key, $data)
+	{
+		if (is_array($data) OR is_object($data))
+		{
+			if ( ! $this->_redis->sIsMember('_ci_redis_serialized', $id) && ! $this->_redis->sAdd('_ci_redis_serialized', $id))
+			{
+				return FALSE;
+			}
+
+			isset($this->_serialized[$id]) OR $this->_serialized[$id] = TRUE;
+			$data = serialize($data);
+		}
+		elseif (isset($this->_serialized[$id]))
+		{
+			$this->_serialized[$id] = NULL;
+			$this->_redis->sRemove('_ci_redis_serialized', $id);
+		}
+
+		return $this->_redis->hSet($id, $key, $data);
+	}
+
 	// ------------------------------------------------------------------------
 
 	/**
@@ -208,6 +258,20 @@ class CI_Cache_redis extends CI_Driver
 		}
 
 		return TRUE;
+	}
+
+	// ------------------------------------------------------------------------
+
+	/**
+	 * Count cache items
+	 *
+	 * @param	string	Cache key
+	 * @return	bool
+	 */
+	public function cache_count($key)
+	{
+		$value = $this->_redis->hLen($key);
+		return $value;
 	}
 
 	// ------------------------------------------------------------------------

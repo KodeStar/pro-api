@@ -137,6 +137,22 @@ class CI_Cache extends CI_Driver_Library {
 	{
 		return $this->{$this->_adapter}->get($this->key_prefix.$id);
 	}
+	// ------------------------------------------------------------------------
+
+	/**
+	 * hGet
+	 *
+	 * Look for a value in the cache. If it exists, return the data
+	 * if not, return FALSE
+	 *
+	 * @param	string	$id
+	 * @return	mixed	value matching $id or FALSE on failure
+	 */
+	public function hget($id, $key)
+	{
+		//die($this->_adapter);
+		return $this->{$this->_adapter}->hget($this->key_prefix.$id, $key);
+	}
 
 	// ------------------------------------------------------------------------
 
@@ -157,6 +173,22 @@ class CI_Cache extends CI_Driver_Library {
 	// ------------------------------------------------------------------------
 
 	/**
+	 * Cache sSave
+	 *
+	 * @param	string	$id	Cache ID
+	 * @param	mixed	$data	Data to store
+	 * @param	int	$ttl	Cache TTL (in seconds)
+	 * @param	bool	$raw	Whether to store the raw value
+	 * @return	bool	TRUE on success, FALSE on failure
+	 */
+	public function hsave($id, $key, $data)
+	{
+		return $this->{$this->_adapter}->hsave($this->key_prefix.$id, $this->key_prefix.$key, $data);
+	}
+
+	// ------------------------------------------------------------------------
+
+	/**
 	 * Delete from Cache
 	 *
 	 * @param	string	$id	Cache ID
@@ -165,6 +197,18 @@ class CI_Cache extends CI_Driver_Library {
 	public function delete($id)
 	{
 		return $this->{$this->_adapter}->delete($this->key_prefix.$id);
+	}
+	// ------------------------------------------------------------------------
+
+	/**
+	 * count items in cache
+	 *
+	 * @param	string	$id	Cache ID
+	 * @return	bool	TRUE on success, FALSE on failure
+	 */
+	public function cache_count($id)
+	{
+		return $this->{$this->_adapter}->cache_count($this->key_prefix.$id);
 	}
 
 	// ------------------------------------------------------------------------
