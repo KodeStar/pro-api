@@ -100,6 +100,7 @@ class CI_Cache_redis extends CI_Driver
 		}
 
 		$config = array_merge(self::$_default_config, $config);
+		if( !class_exists( 'Redis' ) ) return false;
 		$this->_redis = new Redis();
 
 		try

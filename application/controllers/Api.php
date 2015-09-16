@@ -3,8 +3,6 @@
 
 	class Api extends CI_Controller {
 
-		public $GA_ID = "UA-46639161-4";
-
 		public $ttype = '';
 		public $tid = '';
 
@@ -16,12 +14,28 @@
 		public function __construct()
 		{
 			date_default_timezone_set('UTC');
+			parent::__construct();// Init parent contructor
+			$this->load->driver('cache', array('adapter' => 'redis', 'backup' => 'file'));
 			//error_reporting(E_ALL);
 			//ini_set("display_errors", 1);
-			parent::__construct();// Init parent contructor
-			$this->memkeytype = (isset($_GET["imagetype"]) && $_GET["imagetype"] !== "all") ? "-".$_GET["imagetype"] : "-all";	
-			if( isset( $_SERVER['HTTP_API_KEY'] ) && !empty( $_SERVER['HTTP_API_KEY'] ) ) $_GET["api_key"] = $_SERVER['HTTP_API_KEY'];
+			
+
+			$this->register_server();
+
 			if( isset( $_SERVER['HTTP_CLIENT_KEY'] ) && !empty( $_SERVER['HTTP_CLIENT_KEY'] ) ) $_GET["client_key"] = $_SERVER['HTTP_CLIENT_KEY'];
+		}
+
+		private function register_server() {
+
+			// Check if registration has been set
+			$server_details = $this->cache->get( 'server_details' );
+			if( empty( $server_details ) ) {
+				// register server
+			} else {
+				$this->project = $server_details['project'];
+				$this->project_url = $server_details['project_url'];
+			}
+
 		}
 		
 
@@ -33,38 +47,26 @@
 			$uri = $_SERVER['REQUEST_URI'];
 	        $method = $_SERVER['REQUEST_METHOD'];
 	        $paths = explode('/', $this->paths($uri));
-	        $resource = array_slice($paths, 2); // remove empty value and version number
+	        $resource = array_slice($paths, 1); // remove empty value and version number
 			$endpoint = $resource[0];
 			$options = array_slice($resource, 1);
 
+			if( empty( $endpoint ) ) {
 
-			if(isset($_GET["api_key"]) && !empty($_GET["api_key"])) {
-				$key = preg_replace('/[^A-Za-z0-9]/', '', $_GET["api_key"]);
-			} else { $this->rest->response($this->json(array("status" => "error", "error message" => "API key is required")),401); exit(); }
-		
-			$keyget = $this->memcacheget($key);
-			if(!empty($keyget)) {
-				switch($keyget["status"]) {
-					case "invalid": $this->rest->response($this->json(array("status" => "error", "error message" => "API key is invalid or disabled")),401); exit(); break;
-					default: /* If it's not disabled then all is good */ break;
-				}
+				$this->show_stats();
+
 			} else {
-				//if(($api = $this->get_row("",false,21600)) !== NULL) {
-				//	$keyget = array("status" => "ok", "api_project_name" => $api["api_project_name"], "api_project_url" => $api["api_project_url"], "api_key" => $api["api_key"]);
-				//	$this->memcacheset($key, $keyget);
-				//} else {
-				//	$this->rest->response($this->json(array("status" => "error", "error message" => "API key is invalid or disabled")),401); exit();
-				//}
+
+				if((int)method_exists($this,$endpoint) > 0) $this->$endpoint($options);
+				else $this->rest->response('',404 ); 
+				// If the method not exist with in this class, response would be "Page not found".
 
 			}
 
-			$this->project = $keyget['api_project_name'];
-			$this->project_url = $keyget['api_project_url'];
+		}
 
-
-			if((int)method_exists($this,$endpoint) > 0) $this->$endpoint($options);
-			else $this->rest->response('',404); 
-			// If the method not exist with in this class, response would be "Page not found".
+		private function show_stats() {
+			$this->load->view('stats');
 		}
 		
 		private function movies($subpoints)

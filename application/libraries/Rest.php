@@ -4,33 +4,48 @@
 	class Rest {
 		private $_code = 200;
 		public $CI;
+		public $GA_ID = "UA-46639161-4";
+		public $api_key = '';
+		public $project_url = '';
+		public $project = '';
 		
 		public function __construct()
 		{
 			//$this->inputs();
 			$this->CI =& get_instance();
-		}		
+			$this->CI->load->driver('cache', array('adapter' => 'redis', 'backup' => 'file'));
+			$this->api_key = $this->set_key();
+			$server_details = $this->CI->cache->get( 'server_details' );
+			$this->project = $server_details['project'];
+			$this->project_url = $server_details['project_url'];
+
+		}	
+
+		private function set_key() {
+			return '';
+		}	
 		
-		public function response($data,$status,$format="json")
+		public function response($data,$status, $type='error', $id=false, $format="json")
 		{
 			$this->_code = ($status)?$status:200;
+			if( $id == false && $type == 'error' ) $id = $status;
 			$this->set_headers($format);
 			//$this->track();
 			echo $data;
-			$this->track();
+			$this->track( $type, $id );
 			
 
 			exit;
 		}
 
-		public function track() {
+		public function track( $type, $id ) {
 			$url = 'www.google-analytics.com';
 			$page = '/collect';
 
 			$googleip = $this->CI->cache->get('googleip');
 			if(empty($googleip)) {
 				$googleip = gethostbyname($url);
-				$this->cache->set('googleip', $googleip, 3600);
+				$this->CI->cache->save('googleip', $googleip, 3600);
 			}
 
 			//set POST variables
@@ -43,11 +58,11 @@
 				'tid' => $this->GA_ID,
 				'cid' => $this->gaParseCookie(),
 				't' => 'pageview',
-				'cm' => $_GET["api_key"],
+				'cm' => $this->api_key,
 				'dr' => $this->project_url,
 				'cs' => $this->project,
 				'dh' => 'webservice.fanart.tv',
-				'dp' => $this->ttype.'/'.$this->tid,
+				'dp' => $type.'/'.$id,
 				'uip' => $_SERVER['REMOTE_ADDR'],
 				'ua' => $_SERVER['HTTP_USER_AGENT']
 			);
@@ -68,8 +83,8 @@
 			$output .= "Connection: close\r\n\r\n";
 
 			$output .= $fields_string;
-			//die($output);
-			fastcgi_finish_request();
+			
+			//fastcgi_finish_request();
 			$sentData = 0;
             $toBeSentData = strlen($output);
             while($sentData < $toBeSentData) {
