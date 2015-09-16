@@ -118,6 +118,7 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 		border-top: 1px solid #E0E0E0;
 		margin: 20px 0 0 0;
 		padding: 0 30px;
+		position: relative;
 	}
 	section::after {
 		content: " ";
