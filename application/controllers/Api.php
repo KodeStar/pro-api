@@ -17,12 +17,10 @@
 		{
 			date_default_timezone_set('UTC');
 			parent::__construct();// Init parent contructor
+			//$this->output->enable_profiler(TRUE);
 			$this->load->driver('cache', array('adapter' => 'redis', 'backup' => 'file'));
-			//error_reporting(E_ALL);
-			//ini_set("display_errors", 1);
-			$this->api_key = $this->rest->set_key();
 
-			//echo "key: ".$this->api_key;
+			$this->api_key = $this->rest->set_key();
 
 			$this->register_server();
 
@@ -49,6 +47,10 @@
 		//This method dynmically call the method based on the query string
 		public function index()
 		{
+
+			$APIKEY = getenv('APIKEY');
+			echo "key: ".$APIKEY;
+
 			$uri = $_SERVER['REQUEST_URI'];
 	        $method = $_SERVER['REQUEST_METHOD'];
 	        $paths = explode('/', $this->paths($uri));
@@ -73,11 +75,11 @@
 		private function show_stats() {
 			$info = $this->cache->cache_info();
 			$this->load->library('linuxinfo');
-			$data['uptime'] = time_to_ago( $info['uptime_in_seconds'], true, false );
+			$data['uptime'] = isset( $info['uptime_in_seconds'] ) ? time_to_ago( $info['uptime_in_seconds'], true, false ) : 'Unknown' ;
 			$data['load'] = $this->linuxinfo->getLoad();
-			$data['clients'] = $info['connected_clients'];
+			$data['clients'] = ( isset( $info['connected_clients'] ) ) ? $info['connected_clients'] : '0';
 			$data['memory'] = formatram( $this->linuxinfo->getMemStat()->MemFree );
-			$data['database'] = $info['used_memory_human'];
+			$data['database'] = ( isset( $info['used_memory_human'] ) ) ? $info['used_memory_human'] : 'Unkown';
 			$data['movies'] = $this->cache->cache_count( 'movies' );
 			$data['tv'] = $this->cache->cache_count( 'tv' );
 			$data['music'] = $this->cache->cache_count( 'music' );
@@ -268,8 +270,17 @@
 
 		private function api_lookup( $section, $lookupkey, $id ) {
 			$section = ( $section == 'labels' ) ? 'music/labels' : $section;
-			$data = json_decode( file_get_contents( 'http://webservice.fanart.tv/v3/'.$section.'/'.$id.'?api_key='.$this->api_key ) );
-				if( !empty( $data->status ) && $data->status == 'error' ) {
+
+			$url = 'http://webservice.fanart.tv/v3/'.$section.'/'.$id.'?api_key='.$this->api_key;
+			$ch = curl_init( $url );
+			curl_setopt( $ch, CURLOPT_TIMEOUT, 5 );
+			curl_setopt( $ch, CURLOPT_CONNECTTIMEOUT, 5 );
+			curl_setopt( $ch, CURLOPT_RETURNTRANSFER, true );
+			$data = curl_exec( $ch );
+			curl_close( $ch );
+			$data = json_decode( $data );
+
+			if( !empty( $data->status ) && $data->status == 'error' ) {
 				$this->rest->response( $this->json( array( "status" => "error", "error message" => "Not found" ) ), 404 ); break;
 			} else {
 				//die( $id.' --- '.$data->$lookupkey );

@@ -22,8 +22,6 @@
 		}	
 
 		public function set_key() {
-			error_reporting(E_ALL);
-			ini_set("display_errors", 1);
 			$content = shell_exec("cat /etc/fanartapi.json");
 			$environment = json_decode( $content );
 			if( isset( $environment->APIKEY ) ) 
