@@ -48,9 +48,6 @@
 		public function index()
 		{
 
-			$APIKEY = getenv('APIKEY');
-			echo "key: ".$APIKEY;
-
 			$uri = $_SERVER['REQUEST_URI'];
 	        $method = $_SERVER['REQUEST_METHOD'];
 	        $paths = explode('/', $this->paths($uri));
