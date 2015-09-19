@@ -22,10 +22,7 @@
 		}	
 
 		public function set_key() {
-			$content = shell_exec("cat /etc/fanartapi.json");
-			$environment = json_decode( $content );
-			if( isset( $environment->APIKEY ) ) 
-				return $environment->APIKEY;
+			return file_get_contents('/config/APIKEY');
 		}	
 		
 		public function response($data,$status, $type='error', $id=false, $format="json")
